@@ -122,12 +122,7 @@ function ensureMasterDataSchema(PDO $pdo): void
         $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('aktif','nonaktif') NOT NULL DEFAULT 'aktif'");
     }
 
-    if ((int) $pdo->query('SELECT COUNT(*) FROM kategori')->fetchColumn() === 0) {
-        $pdo->exec("INSERT INTO kategori (nama_kategori) VALUES ('Umum'),('Pakaian'),('Aksesoris')");
-    }
-    if ((int) $pdo->query('SELECT COUNT(*) FROM satuan')->fetchColumn() === 0) {
-        $pdo->exec("INSERT INTO satuan (nama_satuan) VALUES ('pcs'),('lusin'),('kg'),('liter')");
-    }
+    $pdo->exec('UPDATE barang SET harga = harga * 1000 WHERE harga > 0 AND harga < 1000');
 
     $done = true;
 }

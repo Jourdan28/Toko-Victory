@@ -32,14 +32,14 @@ ob_start();
 <?php else: ?>
 <div class="card-table">
   <table id="dataTable">
-    <thead><tr><th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Barang</th><th>Keterangan</th><th>Aksi</th></tr></thead>
+    <thead><tr><th>No</th><th>Nama</th><th>Telepon</th><th>Alamat</th><th>Barang</th><th>Aksi</th></tr></thead>
     <tbody>
       <?php foreach ($rows as $i => $r): ?>
       <tr>
         <td><?= $offset + $i + 1 ?></td>
         <td><?= h($r['nama_tampil']) ?></td>
-        <td><?= h($r['email'] ?? '-') ?></td>
         <td><?= h($r['no_telepon'] ?? $r['kontak'] ?? '-') ?></td>
+        <td><?= h(mb_strimwidth($r['alamat'] ?? '-', 0, 50, '...')) ?></td>
         <td class="td-barang-supplier">
           <span class="barang-count"><?= (int)$r['jumlah_barang'] ?> barang</span>
           <?php if ($r['jumlah_barang'] > 0): ?>
@@ -48,7 +48,6 @@ ob_start();
           </button>
           <?php endif; ?>
         </td>
-        <td><?= h(mb_strimwidth($r['keterangan'] ?? '-', 0, 40, '...')) ?></td>
         <td><div class="actions">
           <a href="form.php?id=<?= (int)$r['id'] ?>" class="btn-icon edit" title="Edit"><i class="ti ti-pencil"></i></a>
           <form method="post" action="hapus.php" style="display:inline" onsubmit="return confirmDelete('Yakin hapus supplier ini?')">

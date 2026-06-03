@@ -51,19 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_supplier = (int) ($_POST['id_supplier'] ?? 0);
     $jumlah = (int) ($_POST['jumlah_pesan'] ?? 0);
     $tglPesan = $_POST['tanggal_pesan'] ?? date('Y-m-d');
-    $tglEst = $_POST['tanggal_estimasi'] ?? null;
-    $catatan = trim($_POST['catatan'] ?? '');
-    $status = $_POST['status'] ?? 'pending';
+    $catatan = $edit ? ($item['catatan'] ?? '') : '';
+    $status = $_POST['status'] ?? 'diproses';
 
     if ($id_barang < 1 || $id_supplier < 1 || $jumlah < 1) {
         setFlash('error', 'Barang, supplier, dan jumlah wajib diisi.');
-    } elseif ($tglEst && $tglEst < $tglPesan) {
-        setFlash('error', 'Tanggal estimasi tidak boleh sebelum tanggal pesan.');
     } else {
         try {
             $pdo->beginTransaction();
             if ($edit) {
-                $statusBaru = in_array($status, ['pending','diproses','diterima','dibatalkan'], true) ? $status : $item['status'];
+                $statusBaru = in_array($status, ['diproses', 'diterima', 'dibatalkan'], true) ? $status : $item['status'];
                 if ($statusBaru === 'diterima' && $item['status'] !== 'diterima') {
                     require_once __DIR__ . '/../includes/rop.php';
                     $tglTerima = $_POST['tanggal_diterima'] ?? date('Y-m-d');
@@ -73,8 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stokSesudah = $stokSebelum + $jumlah;
                     $pdo->prepare(
                         'UPDATE pemesanan SET id_barang=?, id_supplier=?, jumlah_pesan=?, tanggal_pesan=?,
-                         tanggal_estimasi=?, catatan=?, status=?, tanggal_diterima=? WHERE id=?'
-                    )->execute([$id_barang, $id_supplier, $jumlah, $tglPesan, $tglEst ?: null, $catatan, 'diterima', $tglTerima, $id]);
+                         catatan=?, status=?, tanggal_diterima=? WHERE id=?'
+                    )->execute([$id_barang, $id_supplier, $jumlah, $tglPesan, $catatan, 'diterima', $tglTerima, $id]);
                     $pdo->prepare('UPDATE barang SET stok_saat_ini = ? WHERE id = ?')->execute([$stokSesudah, $id_barang]);
                     insertTransaksiFull($pdo, $id_barang, 'masuk', $jumlah, $stokSebelum, $stokSesudah, (int)$_SESSION['user']['id'], 'Dari pesanan edit');
                     hitung_rop($pdo, $id_barang);
@@ -86,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $pdo->prepare(
                     'UPDATE pemesanan SET id_barang=?, id_supplier=?, jumlah_pesan=?, tanggal_pesan=?,
-                     tanggal_estimasi=?, catatan=?, status=? WHERE id=?'
-                )->execute([$id_barang, $id_supplier, $jumlah, $tglPesan, $tglEst ?: null, $catatan, $statusBaru, $id]);
+                     catatan=?, status=? WHERE id=?'
+                )->execute([$id_barang, $id_supplier, $jumlah, $tglPesan, $catatan, $statusBaru, $id]);
                 log_activity($pdo, (int)$_SESSION['user']['id'], $_SESSION['user']['nama'], 'edit', 'Mengedit pesanan #' . $id);
                 $pdo->commit();
                 setFlash('success', 'Pesanan diperbarui.');
@@ -95,8 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $kode = generateKodePesanan($pdo);
                 $pdo->prepare(
                     'INSERT INTO pemesanan (kode_pesanan, id_barang, id_supplier, jumlah_pesan, catatan,
-                     tanggal_pesan, tanggal_estimasi, id_user) VALUES (?,?,?,?,?,?,?,?)'
-                )->execute([$kode, $id_barang, $id_supplier, $jumlah, $catatan, $tglPesan, $tglEst ?: null, (int)$_SESSION['user']['id']]);
+                     tanggal_pesan, status, id_user) VALUES (?,?,?,?,?,?,?,?)'
+                )->execute([$kode, $id_barang, $id_supplier, $jumlah, $catatan, $tglPesan, 'diproses', (int)$_SESSION['user']['id']]);
                 log_activity($pdo, (int)$_SESSION['user']['id'], $_SESSION['user']['nama'], 'tambah', "Pesanan baru $kode");
                 $pdo->commit();
                 setFlash('success', "Pesanan $kode berhasil dibuat.");
@@ -148,22 +145,18 @@ ob_start();
       <div class="form-group"><label>Tanggal Pesan *</label>
         <input type="date" name="tanggal_pesan" value="<?= h($item['tanggal_pesan'] ?? date('Y-m-d')) ?>" required>
       </div>
-      <div class="form-group"><label>Estimasi Tiba</label>
-        <input type="date" name="tanggal_estimasi" value="<?= h($item['tanggal_estimasi'] ?? '') ?>">
-      </div>
-      <div class="form-group"><label>Catatan</label><textarea name="catatan" rows="3"><?= h($item['catatan'] ?? '') ?></textarea></div>
       <?php if ($edit): ?>
       <div class="form-group"><label>Status *</label>
         <select name="status" id="statusPesan">
-          <?php foreach (['pending'=>'Menunggu','diproses'=>'Diproses','diterima'=>'Diterima','dibatalkan'=>'Dibatalkan'] as $k=>$v): ?>
+          <?php foreach (['diproses'=>'Diproses','diterima'=>'Diterima','dibatalkan'=>'Dibatalkan'] as $k=>$v): ?>
           <option value="<?= $k ?>" <?= ($item['status']??'')===$k?'selected':'' ?>><?= $v ?></option>
           <?php endforeach; ?>
         </select>
       </div>
       <div class="form-group" id="wrapTglTerima" style="display:none">
-        <label>Tanggal Diterima *</label>
+        <label>Tiba pd Tanggal *</label>
         <input type="date" name="tanggal_diterima" value="<?= date('Y-m-d') ?>">
-        <p style="font-size:11px;color:var(--blue);margin-top:6px">Mengubah ke Diterima akan menambah stok otomatis.</p>
+        <p style="font-size:11px;color:var(--blue);margin-top:6px">Mengubah ke Diterima akan mencatat tanggal tiba dan menambah stok otomatis.</p>
       </div>
       <?php endif; ?>
     </div>
@@ -175,9 +168,15 @@ ob_start();
 </form>
 <?php include __DIR__ . '/../includes/barang_select_js.php'; ?>
 <script>
-initBarangSelect({ inputId: 'barang_search', hiddenId: 'id_barang', infoId: 'infoBarang', onSelect: onBarangPesan });
+initBarangSelect({ inputId: 'barang_search', hiddenId: 'id_barang', infoId: 'infoBarang', onSelect: onBarangPesan, onClear: onBarangClear });
 <?php if ($edit && $item): ?>document.getElementById('id_barang').value = <?= (int)$item['id_barang'] ?>; onBarangPesan(barangData.find(b=>b.id==<?= (int)$item['id_barang'] ?>));<?php endif; ?>
 
+function onBarangClear() {
+  const sup = document.getElementById('id_supplier');
+  if (sup) sup.value = '';
+  document.getElementById('saranPesan').textContent = '';
+  document.getElementById('previewTerima').textContent = 'Estimasi stok setelah diterima: —';
+}
 function onBarangPesan(b) {
   if (!b) return;
   const sup = document.getElementById('id_supplier');

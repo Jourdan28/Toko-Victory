@@ -23,29 +23,24 @@ if ($edit) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama = trim($_POST['nama_supplier'] ?? '');
-    $email = trim($_POST['email'] ?? '');
     $telp = trim($_POST['no_telepon'] ?? '');
     $alamat = trim($_POST['alamat'] ?? '');
-    $ket = trim($_POST['keterangan'] ?? '');
     $errors = [];
     if ($nama === '') {
         $errors[] = 'Nama supplier wajib diisi.';
-    }
-    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Format email tidak valid.';
     }
     if ($telp !== '' && !preg_match('/^[0-9+\-\s()]+$/', $telp)) {
         $errors[] = 'No. telepon tidak valid.';
     }
     if (empty($errors)) {
         if ($edit) {
-            $pdo->prepare('UPDATE supplier SET nama_supplier=?, nama=?, email=?, no_telepon=?, alamat=?, keterangan=? WHERE id=?')
-                ->execute([$nama, $nama, $email ?: null, $telp ?: null, $alamat, $ket, $id]);
+            $pdo->prepare('UPDATE supplier SET nama_supplier=?, nama=?, no_telepon=?, alamat=? WHERE id=?')
+                ->execute([$nama, $nama, $telp ?: null, $alamat, $id]);
             log_activity($pdo, (int) $_SESSION['user']['id'], $_SESSION['user']['nama'], 'edit', 'Mengedit supplier: ' . $nama);
             setFlash('success', 'Supplier diperbarui.');
         } else {
-            $pdo->prepare('INSERT INTO supplier (nama_supplier, nama, email, no_telepon, alamat, keterangan) VALUES (?,?,?,?,?,?)')
-                ->execute([$nama, $nama, $email ?: null, $telp ?: null, $alamat, $ket]);
+            $pdo->prepare('INSERT INTO supplier (nama_supplier, nama, no_telepon, alamat) VALUES (?,?,?,?)')
+                ->execute([$nama, $nama, $telp ?: null, $alamat]);
             log_activity($pdo, (int) $_SESSION['user']['id'], $_SESSION['user']['nama'], 'tambah', 'Menambahkan supplier: ' . $nama);
             setFlash('success', 'Supplier ditambahkan.');
         }
@@ -62,12 +57,8 @@ ob_start();
 <div class="page-head"><h2><?= $edit ? 'Edit' : 'Tambah' ?> Supplier</h2><a href="index.php" class="btn-outline">← Kembali</a></div>
 <form method="post" class="form-card">
   <div class="form-group"><label>Nama Supplier *</label><input type="text" name="nama_supplier" required value="<?= $v('nama_supplier') ?>"></div>
-  <div class="form-grid">
-    <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= $v('email') ?>"></div>
-    <div class="form-group"><label>No. Telepon</label><input type="text" name="no_telepon" value="<?= $v('no_telepon') ?>"></div>
-  </div>
+  <div class="form-group"><label>No. Telepon</label><input type="text" name="no_telepon" value="<?= $v('no_telepon') ?>"></div>
   <div class="form-group"><label>Alamat</label><textarea name="alamat" rows="3"><?= $v('alamat') ?></textarea></div>
-  <div class="form-group"><label>Keterangan</label><textarea name="keterangan" rows="2"><?= $v('keterangan') ?></textarea></div>
   <div class="form-actions"><button type="submit" class="btn-primary">Simpan</button><a href="index.php" class="btn-outline">Batal</a></div>
 </form>
 <?php

@@ -96,7 +96,7 @@ laporanRenderStyles();
       <table class="laporan-table" id="laporanTable">
         <thead><tr>
           <th>No</th><th>Nama Pemasok</th><th>No. Telepon</th><th>Email</th>
-          <th>Barang Disuplai</th><th>Total Stok</th><th>Lead Time</th><th>Aksi</th>
+          <th>Barang Disuplai</th><th>Total Stok</th><th>Lead Time</th>
         </tr></thead>
         <tbody>
         <?php $no = $offset + 1; foreach ($rows as $r):
@@ -119,11 +119,6 @@ laporanRenderStyles();
           </td>
           <td class="mono"><?= number_format((int) $r['total_stok_disuplai']) ?></td>
           <td><?= h($lead) ?></td>
-          <td>
-            <?php if ($tel || $email): ?>
-            <a href="<?= $tel ? 'tel:' . h(preg_replace('/\s+/', '', $tel)) : 'mailto:' . h($email) ?>" class="btn-outline" style="padding:4px 10px;font-size:11px">Hubungi</a>
-            <?php else: ?>—<?php endif; ?>
-          </td>
         </tr>
         <?php endforeach; ?>
         </tbody>

@@ -36,9 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_merek = (int) ($_POST['id_merek'] ?? 0) ?: null;
     $id_lokasi = (int) ($_POST['id_lokasi'] ?? 0) ?: null;
     $id_supplier = (int) ($_POST['id_supplier'] ?? 0) ?: null;
-    $harga = max(0, (float) ($_POST['harga'] ?? 0));
+    $harga = parseRupiahInput($_POST['harga'] ?? '');
     $stok = max(0, (int) ($_POST['stok_saat_ini'] ?? 0));
-    $keterangan = trim($_POST['keterangan'] ?? '');
+    $keterangan = $edit ? ($item['keterangan'] ?? '') : '';
     $demand_avg = max(0, (float) ($_POST['demand_avg'] ?? 0));
     $demand_max = max(0, (int) ($_POST['demand_max'] ?? 0));
     $delivery_avg = max(0, (float) ($_POST['delivery_avg'] ?? 0));
@@ -117,6 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $v = function ($key, $default = '') use ($item) {
     return h($_POST[$key] ?? ($item[$key] ?? $default));
 };
+$hargaInput = isset($_POST['harga'])
+    ? h($_POST['harga'])
+    : formatRupiah($item ? (float) ($item['harga'] ?? 0) : 0);
 
 ob_start();
 ?>
@@ -174,9 +177,8 @@ ob_start();
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="form-group"><label>Harga (Rp)</label><input type="number" name="harga" min="0" step="1" value="<?= $v('harga', '0') ?>"></div>
+      <div class="form-group"><label>Harga (Rp)</label><input type="text" name="harga" id="hargaInput" inputmode="numeric" autocomplete="off" placeholder="Contoh: 29.900" value="<?= $hargaInput ?>"></div>
       <div class="form-group"><label>Stok Saat Ini</label><input type="number" name="stok_saat_ini" min="0" value="<?= $v('stok_saat_ini', '0') ?>"></div>
-      <div class="form-group"><label>Keterangan</label><textarea name="keterangan" rows="3"><?= $v('keterangan') ?></textarea></div>
     </div>
   </div>
   <div class="section-title">Reorder Point — dihitung otomatis saat simpan (berdasarkan permintaan atau stok awal)</div>
@@ -195,6 +197,11 @@ ob_start();
   </div>
 </form>
 <script>
+function formatHargaInput(el){
+  const digits=(el.value.match(/\d/g)||[]).join('');
+  el.value=digits?digits.replace(/\B(?=(\d{3})+(?!\d))/g,'.'):'';
+}
+document.getElementById('hargaInput')?.addEventListener('input',function(){formatHargaInput(this);});
 function calcRop(){
   const stok=+document.querySelector('[name=stok_saat_ini]').value||0;
   const da=+document.getElementById('demand_avg').value||0;

@@ -38,6 +38,8 @@ function ensureTransactionsSchema(PDO $pdo): void
         }
     }
 
+    $pdo->exec("UPDATE pemesanan SET status = 'diproses' WHERE status = 'pending'");
+
     $done = true;
 }
 

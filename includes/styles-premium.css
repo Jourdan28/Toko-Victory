@@ -138,15 +138,9 @@ h1, h2, .page-head h2, .auth-form-wrap .card-title {
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
 }
 
+/* Garis gradient atas sidebar — dinonaktifkan */
 .sidebar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--brand-gradient);
-  z-index: 2;
+  display: none;
 }
 
 .sidebar-logo {
@@ -1014,11 +1008,6 @@ html.light .sidebar {
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border-default);
   box-shadow: 1px 0 8px rgba(0, 0, 0, 0.04);
-}
-
-html.light .sidebar::before {
-  height: 2px;
-  opacity: 0.85;
 }
 
 html.light .sidebar-logo,

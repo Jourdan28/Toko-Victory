@@ -46,21 +46,24 @@ function laporanFiltersFromRequest(): array
 function laporanBuildQuery(array $filters, array $extra = []): string
 {
     $params = array_merge($filters, $extra);
+    $page = max(1, (int) ($params['page'] ?? 1));
     unset($params['page']);
     $q = http_build_query(array_filter($params, static fn($v) => $v !== '' && $v !== 0));
+    if ($page > 1) {
+        $q = $q === '' ? 'page=' . $page : $q . '&page=' . $page;
+    }
     return $q === '' ? '' : '?' . $q;
 }
 
 function laporanStokStatus(int $stok, int $rop): string
 {
-    $rop = max($rop, 1);
-    if ($stok <= 0) {
-        return 'habis';
-    }
-    if ($stok <= $rop) {
-        return 'menipis';
-    }
-    return 'aman';
+    $status = getStokStatus($stok, $rop);
+    return match ($status['class']) {
+        'kritis' => 'kritis',
+        'menipis' => 'menipis',
+        'aman' => 'aman',
+        default => 'habis',
+    };
 }
 
 function laporanStatusBadge(string $status): string
@@ -68,6 +71,7 @@ function laporanStatusBadge(string $status): string
     return match ($status) {
         'aman' => '<span class="tag tag-green">Aman</span>',
         'menipis' => '<span class="tag tag-amber">Menipis</span>',
+        'kritis' => '<span class="tag tag-red">Kritis</span>',
         'habis' => '<span class="tag tag-red">Habis</span>',
         default => '<span class="tag tag-gray">—</span>',
     };

@@ -97,3 +97,53 @@ function getStokStatus(int $stok, int $rop): array
     }
     return ['label' => 'Aman', 'class' => 'aman', 'level' => 0];
 }
+
+function normalizeHargaAmount(float $amount): float
+{
+    if ($amount > 0 && $amount < 1000) {
+        return $amount * 1000;
+    }
+    return $amount;
+}
+
+function formatRupiah(float|int|string|null $amount, bool $withPrefix = false): string
+{
+    $formatted = number_format(normalizeHargaAmount((float) ($amount ?? 0)), 0, ',', '.');
+    return $withPrefix ? 'Rp ' . $formatted : $formatted;
+}
+
+function parseRupiahInput(?string $value): float
+{
+    if ($value === null || trim($value) === '') {
+        return 0.0;
+    }
+
+    $value = trim($value);
+    $value = preg_replace('/^Rp\s*/i', '', $value);
+    $value = str_replace(' ', '', $value);
+    $value = preg_replace('/[^\d.,]/', '', $value);
+
+    if ($value === '') {
+        return 0.0;
+    }
+
+    $hasComma = str_contains($value, ',');
+    $hasDot = str_contains($value, '.');
+
+    if ($hasComma && $hasDot) {
+        $value = str_replace('.', '', $value);
+        $value = str_replace(',', '.', $value);
+    } elseif ($hasComma) {
+        $value = str_replace(',', '.', $value);
+    } elseif ($hasDot) {
+        $parts = explode('.', $value);
+        if (count($parts) > 1) {
+            $last = end($parts);
+            if (strlen($last) === 3 || count($parts) > 2) {
+                $value = str_replace('.', '', $value);
+            }
+        }
+    }
+
+    return max(0, normalizeHargaAmount((float) $value));
+}

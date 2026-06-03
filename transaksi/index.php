@@ -7,44 +7,29 @@ $BASE = rtrim(appBasePath(), '/');
 $active_menu = 'transaksi';
 $page_title = 'Manajemen Transaksi';
 
-$filterJenis = $_GET['jenis'] ?? '';
-$filterDari = $_GET['dari'] ?? '';
-$filterSampai = $_GET['sampai'] ?? '';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 10;
-$offset = ($page - 1) * $perPage;
 
-$where = ['1=1'];
-$params = [];
-if (in_array($filterJenis, ['masuk', 'keluar'], true)) {
-    $where[] = 't.jenis = ?';
-    $params[] = $filterJenis;
-}
-if ($filterDari !== '') {
-    $where[] = 'DATE(t.created_at) >= ?';
-    $params[] = $filterDari;
-}
-if ($filterSampai !== '') {
-    $where[] = 'DATE(t.created_at) <= ?';
-    $params[] = $filterSampai;
-}
-$whereSql = implode(' AND ', $where);
-
-$countStmt = $pdo->prepare("SELECT COUNT(*) FROM transaksi t WHERE $whereSql");
-$countStmt->execute($params);
+$countStmt = $pdo->prepare(
+    "SELECT COUNT(*) FROM transaksi t
+     INNER JOIN barang b ON t.id_barang = b.id"
+);
+$countStmt->execute();
 $total = (int) $countStmt->fetchColumn();
 $totalPages = max(1, (int) ceil($total / $perPage));
+if ($page > $totalPages) {
+    header('Location: index.php' . ($totalPages > 1 ? '?page=' . $totalPages : ''));
+    exit;
+}
+$offset = ($page - 1) * $perPage;
 
 $sql = "SELECT t.*, b.nama_barang, u.name AS nama_user
         FROM transaksi t
         JOIN barang b ON t.id_barang = b.id
         LEFT JOIN users u ON t.id_user = u.id
-        WHERE $whereSql
         ORDER BY t.created_at DESC
         LIMIT $perPage OFFSET $offset";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$rows = $stmt->fetchAll();
+$rows = $pdo->query($sql)->fetchAll();
 
 $trxHari = (int) $pdo->query('SELECT COUNT(*) FROM transaksi WHERE DATE(created_at) = CURDATE()')->fetchColumn();
 $masukHari = (int) $pdo->query("SELECT COALESCE(SUM(jumlah),0) FROM transaksi WHERE jenis='masuk' AND DATE(created_at)=CURDATE()")->fetchColumn();
@@ -55,8 +40,7 @@ ob_start();
 <div class="page-head">
   <h2>Manajemen Transaksi</h2>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a href="masuk.php" class="btn-green"><i class="ti ti-arrow-bar-to-down"></i> Barang Masuk</a>
-    <a href="keluar.php" class="btn-red"><i class="ti ti-arrow-bar-up"></i> Barang Keluar</a>
+    <a href="catat_keluar.php" class="btn-red"><i class="ti ti-arrow-bar-up"></i> Barang Keluar</a>
   </div>
 </div>
 
@@ -66,27 +50,11 @@ ob_start();
   <div class="stat-mini"><div class="val" style="color:var(--red)"><?= number_format($keluarHari) ?></div><div class="lbl">Unit keluar hari ini</div></div>
 </div>
 
-<div class="tabs" id="tabJenis">
-  <button type="button" class="active" data-jenis="all">Semua</button>
-  <button type="button" data-jenis="masuk">Barang Masuk</button>
-  <button type="button" data-jenis="keluar">Barang Keluar</button>
-</div>
-<p class="tab-filter-hint" id="tabJenis_hint"></p>
-
-<form method="get" class="form-card" style="margin-bottom:16px;padding:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-  <div class="form-group" style="margin:0"><label>Filter jenis</label>
-    <select name="jenis"><option value="">Semua</option>
-      <option value="masuk" <?= $filterJenis === 'masuk' ? 'selected' : '' ?>>Masuk</option>
-      <option value="keluar" <?= $filterJenis === 'keluar' ? 'selected' : '' ?>>Keluar</option>
-    </select>
-  </div>
-  <div class="form-group" style="margin:0"><label>Dari</label><input type="date" name="dari" value="<?= h($filterDari) ?>"></div>
-  <div class="form-group" style="margin:0"><label>Sampai</label><input type="date" name="sampai" value="<?= h($filterSampai) ?>"></div>
-  <button type="submit" class="btn-primary">Terapkan</button>
-  <?php if ($filterJenis || $filterDari || $filterSampai): ?>
-  <a href="index.php" class="btn-outline">Reset filter</a>
-  <?php endif; ?>
-</form>
+<nav class="tabs" id="tabTransaksiNav" aria-label="Jenis transaksi">
+  <a href="index.php" class="report-tab active">Semua</a>
+  <a href="masuk.php" class="report-tab">Barang Masuk</a>
+  <a href="keluar.php" class="report-tab">Barang Keluar</a>
+</nav>
 
 <div class="search-box"><i class="ti ti-search"></i><input type="search" id="searchTable" placeholder="Cari barang atau kode transaksi..."></div>
 
@@ -121,24 +89,25 @@ ob_start();
   </table>
   <?php if ($totalPages > 1): ?>
   <div class="pagination">
-    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-    <a href="?page=<?= $p ?>&jenis=<?= h($filterJenis) ?>&dari=<?= h($filterDari) ?>&sampai=<?= h($filterSampai) ?>" class="<?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
-    <?php endfor; ?>
+    <?php
+    $pgBase = static function (int $p): string {
+        return $p > 1 ? 'index.php?page=' . $p : 'index.php';
+    };
+    if ($page > 1): ?>
+    <a href="<?= h($pgBase($page - 1)) ?>">‹ Prev</a>
+    <?php endif;
+    $start = max(1, $page - 2);
+    $end = min($totalPages, $page + 2);
+    for ($p = $start; $p <= $end; $p++): ?>
+    <a href="<?= h($pgBase($p)) ?>" class="<?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
+    <?php endfor;
+    if ($page < $totalPages): ?>
+    <a href="<?= h($pgBase($page + 1)) ?>">Next ›</a>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 </div>
-<script>
-runPageInit(function () {
-  const selectJenis = document.querySelector('form select[name="jenis"]');
-  const initial = <?= json_encode($filterJenis !== '' ? $filterJenis : 'all') ?>;
-  initTableTabs('tabJenis', 'jenis', {
-    tableId: 'dataTable',
-    searchInputId: 'searchTable',
-    syncSelect: selectJenis,
-    initial: initial === '' ? 'all' : initial,
-  });
-});
-</script>
+<script>liveSearch('searchTable','dataTable');</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../includes/layout.php';

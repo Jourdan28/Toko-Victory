@@ -76,9 +76,9 @@ include __DIR__ . '/includes/auth_shell.php';
         <div class="form-group">
           <label for="role">Tipe Akun</label>
           <select id="role" name="role" required>
-            <option value="karyawan" <?= ($post['role'] ?? '') === 'karyawan' ? 'selected' : '' ?>>Karyawan — akses terbatas</option>
-            <option value="admin" <?= ($post['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Admin — akses penuh</option>
-            <option value="owner" <?= ($post['role'] ?? '') === 'owner' ? 'selected' : '' ?>>Owner — akses penuh</option>
+            <option value="karyawan" <?= ($post['role'] ?? '') === 'karyawan' ? 'selected' : '' ?>>Karyawan</option>
+            <option value="admin" <?= ($post['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Admin</option>
+            <option value="owner" <?= ($post['role'] ?? '') === 'owner' ? 'selected' : '' ?>>Owner</option>
           </select>
         </div>
         <div class="form-group">

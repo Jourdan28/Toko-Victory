@@ -15,8 +15,8 @@ $row = $stmt->fetch();
 
 if (!$row) {
     setFlash('error', 'Pesanan tidak ditemukan.');
-} elseif ($row['status'] !== 'pending') {
-    setFlash('error', 'Hanya pesanan berstatus pending yang bisa dihapus.');
+} elseif (!in_array($row['status'], ['pending', 'diproses'], true)) {
+    setFlash('error', 'Hanya pesanan berstatus diproses yang bisa dihapus.');
 } else {
     $pdo->prepare('DELETE FROM pemesanan WHERE id = ?')->execute([$id]);
     log_activity($pdo, (int)$_SESSION['user']['id'], $_SESSION['user']['nama'], 'hapus', 'Menghapus pesanan: ' . $row['kode_pesanan']);

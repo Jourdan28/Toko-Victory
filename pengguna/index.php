@@ -19,16 +19,14 @@ ob_start();
 ?>
 <div class="page-head">
   <h2>Daftar Pengguna</h2>
-  <a href="form.php" class="btn-primary"><i class="ti ti-plus"></i> Tambah Pengguna</a>
 </div>
 <div class="search-box"><i class="ti ti-search"></i><input type="search" id="searchTable" placeholder="Cari pengguna..."></div>
 <div class="card-table">
   <table id="dataTable">
-    <thead><tr><th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead>
+    <thead><tr><th>No</th><th>Nama</th><th>Email</th><th>Telepon</th><th>Role</th><th>Aksi</th></tr></thead>
     <tbody>
       <?php foreach ($rows as $i => $r):
         $role = $r['role'] ?? 'karyawan';
-        $status = $r['status'] ?? 'aktif';
       ?>
       <tr>
         <td><?= $offset + $i + 1 ?></td>
@@ -36,9 +34,7 @@ ob_start();
         <td><?= h($r['email']) ?></td>
         <td><?= h($r['no_telepon'] ?? '-') ?></td>
         <td><span class="tag <?= $role === 'owner' ? 'tag-blue' : ($role === 'admin' ? 'tag-amber' : 'tag-green') ?>"><?= h(ucfirst($role)) ?></span></td>
-        <td><span class="tag <?= $status === 'aktif' ? 'tag-green' : 'tag-gray' ?>"><?= h(ucfirst($status)) ?></span></td>
         <td><div class="actions">
-          <a href="form.php?id=<?= (int)$r['id'] ?>" class="btn-icon edit" title="Edit"><i class="ti ti-pencil"></i></a>
           <?php if ((int)$r['id'] !== $selfId): ?>
           <form method="post" action="hapus.php" style="display:inline" onsubmit="return confirmDelete('Yakin hapus pengguna ini?')">
             <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">

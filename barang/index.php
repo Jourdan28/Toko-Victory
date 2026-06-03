@@ -62,7 +62,7 @@ ob_start();
         <td><?= h($r['nama_barang']) ?></td>
         <td><?= h($r['kategori_tampil'] ?? '-') ?></td>
         <td><?= h($r['nama_merek'] ?? '-') ?></td>
-        <td class="mono">Rp <?= number_format((float)($r['harga'] ?? 0), 0, ',', '.') ?></td>
+        <td class="mono"><?= formatRupiah($r['harga'] ?? 0, true) ?></td>
         <td><?= $stok ?></td>
         <td><?= $rop ?></td>
         <td><span class="tag <?= $tagClass ?>"><?= h($status['label']) ?></span></td>

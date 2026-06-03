@@ -691,6 +691,7 @@ html.light .content::-webkit-scrollbar-thumb {
 /* === TABS === */
 .tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--border-subtle); margin-bottom: var(--space-4); flex-wrap: wrap; }
 .tabs button,
+.tabs a,
 .tabs a.report-tab {
   background: none; border: none; border-bottom: 2px solid transparent;
   color: var(--text-secondary); padding: 10px var(--space-4); font-size: var(--text-sm);
@@ -698,8 +699,10 @@ html.light .content::-webkit-scrollbar-thumb {
   text-decoration: none; display: inline-block;
 }
 .tabs button.active,
+.tabs a.active,
 .tabs a.report-tab.active { color: var(--blue-400); border-bottom-color: var(--blue-500); font-weight: 500; }
 .tabs button:hover,
+.tabs a:hover,
 .tabs a.report-tab:hover { color: var(--text-primary); }
 .tab-filter-hint {
   font-size: var(--text-xs);
@@ -715,9 +718,36 @@ html.light .content::-webkit-scrollbar-thumb {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
 }
 .search-select-wrap { position: relative; }
+.search-select-wrap input[type="text"],
+.search-select-wrap input[type="search"] {
+  width: 100%;
+  padding-right: 40px;
+}
+.search-select-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  z-index: 2;
+}
+.search-select-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.search-select-clear[hidden] { display: none !important; }
 .search-select-list {
   display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px);
-  max-height: 220px; overflow-y: auto; background: var(--bg-card);
+  max-height: 280px; overflow-y: auto; background: var(--bg-card);
   border: 1px solid var(--border-default); border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg); z-index: 50;
 }
@@ -727,6 +757,7 @@ html.light .content::-webkit-scrollbar-thumb {
   border-bottom: 1px solid var(--border-subtle);
 }
 .search-select-list div[data-id]:hover { background: var(--bg-hover); }
+.search-select-list div[data-id].kritis { border-left: 3px solid var(--red-500); }
 .search-select-list div[data-id].menipis { border-left: 3px solid var(--amber-500); }
 .info-card-barang {
   display: none; margin-top: var(--space-3); padding: var(--space-3) var(--space-4);
@@ -766,6 +797,19 @@ html.light .content::-webkit-scrollbar-thumb {
   padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle);
 }
 .laporan-toolbar .form-group { margin: 0; min-width: 140px; }
+.laporan-search-only {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.laporan-search-form { width: 100%; max-width: 360px; }
+.laporan-search-only .search-box { margin-bottom: 0; }
+.laporan-search-only .search-box input {
+  width: 100%;
+  max-width: none;
+  padding: 10px 12px 10px 38px;
+}
+.laporan-search-only .search-box i { left: 14px; }
+.laporan-panel-body { padding: var(--space-4); }
 .laporan-filter-note {
   padding: var(--space-2) var(--space-4); font-size: var(--text-sm);
   color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle);
@@ -990,6 +1034,7 @@ html.light .btn-lihat-barang { color: var(--blue-600); }
 html.light .btn-lihat-barang:hover { color: var(--blue-600); }
 
 .modal-supplier-barang .modal-box { max-width: 440px; }
+.modal-status-pesan .modal-box { max-width: 420px; }
 .modal-supplier-barang .modal-head h3 { margin: 0; font-size: var(--text-md); }
 .modal-supplier-barang .modal-sub {
   margin: var(--space-1) 0 0; font-size: var(--text-xs); color: var(--text-secondary);

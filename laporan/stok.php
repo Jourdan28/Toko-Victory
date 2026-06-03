@@ -10,7 +10,6 @@ $active_menu = 'laporan';
 $laporan_tab = 'stok';
 $page_title = 'Laporan';
 $isOwner = laporanIsOwner();
-$isFull = isFullAccess($_SESSION['user']['role'] ?? '');
 $f = laporanFiltersFromRequest();
 $perPage = 15;
 $self = 'stok.php';
@@ -116,7 +115,6 @@ laporanRenderStyles();
       <table class="laporan-table" id="laporanTable">
         <thead><tr>
           <th>No</th><th>Nama Barang</th><th>Kategori</th><th>Stok Sistem</th><th>Stok Catatan</th><th>Selisih</th><th>ROP</th><th>Status</th>
-          <?php if ($isFull): ?><th>Input Fisik</th><?php endif; ?>
         </tr></thead>
         <tbody>
         <?php $no = $offset + 1; foreach ($rows as $r):
@@ -132,9 +130,6 @@ laporanRenderStyles();
           <td><?= laporanSelisihHtml($sel) ?></td>
           <td class="mono"><?= number_format((int) $r['rop']) ?></td>
           <td><?= laporanStatusBadge($st) ?></td>
-          <?php if ($isFull): ?>
-          <td><button type="button" class="btn-stok-catatan" data-id="<?= (int) $r['id'] ?>" data-val="<?= (int) $r['stok_catatan'] ?>">Input Stok Fisik</button></td>
-          <?php endif; ?>
         </tr>
         <?php endforeach; ?>
         </tbody>
@@ -144,27 +139,6 @@ laporanRenderStyles();
   </div>
   <?php laporanRenderFooter($total, 'stok', $f, $BASE, $isOwner); ?>
 </div>
-<?php if ($isFull): ?>
-<script>
-document.querySelectorAll('.btn-stok-catatan').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const val = prompt('Masukkan stok fisik / catatan manual:', btn.dataset.val);
-    if (val === null) return;
-    const n = parseInt(val, 10);
-    if (isNaN(n) || n < 0) { alert('Nilai tidak valid'); return; }
-    const fd = new FormData();
-    fd.append('id', btn.dataset.id);
-    fd.append('stok_catatan', n);
-    const res = await fetch('<?= h($BASE) ?>/api/update_stok_catatan.php', { method: 'POST', body: fd });
-    const j = await res.json();
-    if (!j.ok) { alert(j.message || 'Gagal'); return; }
-    const tr = btn.closest('tr');
-    tr.querySelector('.stok-catatan-val').textContent = n.toLocaleString('id-ID');
-    location.reload();
-  });
-});
-</script>
-<?php endif; ?>
 <script>liveSearch('liveSearchInput','laporanTable');</script>
 <?php
 $content = ob_get_clean();

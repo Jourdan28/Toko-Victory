@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id = (int) ($_POST['id'] ?? 0);
 $status = $_POST['status'] ?? '';
 $tglTerima = $_POST['tanggal_diterima'] ?? date('Y-m-d');
-$allowed = ['pending', 'diproses', 'diterima', 'dibatalkan'];
+$allowed = ['diproses', 'diterima', 'dibatalkan'];
 
 if (!in_array($status, $allowed, true)) {
     setFlash('error', 'Status tidak valid.');

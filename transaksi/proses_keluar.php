@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/rop.php';
 requireStaff();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: keluar.php');
+    header('Location: catat_keluar.php');
     exit;
 }
 
@@ -17,7 +17,7 @@ $id_user = (int) $_SESSION['user']['id'];
 
 if ($id_barang < 1 || $jumlah < 1) {
     setFlash('error', 'Barang dan jumlah wajib diisi.');
-    header('Location: keluar.php');
+    header('Location: catat_keluar.php');
     exit;
 }
 
@@ -75,6 +75,8 @@ try {
         $pdo->rollBack();
     }
     setFlash('error', $e->getMessage());
+    header('Location: catat_keluar.php');
+    exit;
 }
 
 header('Location: keluar.php');
