@@ -150,10 +150,6 @@ $tvTitle = h($page_title) . ' — Toko Victory';
 
       <div class="header-right">
 
-        <button type="button" class="btn-icon theme-toggle" id="theme-toggle" aria-label="Toggle tema"><i class="ti ti-sun"></i></button>
-
-        <span class="header-divider"></span>
-
         <div class="avatar header-avatar" title="<?= $nama ?>"><?= $initials ?></div>
 
       </div>

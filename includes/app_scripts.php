@@ -3,23 +3,6 @@
 ?>
 <script>
 (function () {
-  const root = document.documentElement;
-  const themeBtn = document.getElementById('theme-toggle');
-  if (themeBtn) {
-    const syncIcon = () => {
-      const icon = themeBtn.querySelector('i');
-      if (icon) {
-        icon.className = root.classList.contains('light') ? 'ti ti-moon' : 'ti ti-sun';
-      }
-    };
-    syncIcon();
-    themeBtn.addEventListener('click', () => {
-      root.classList.toggle('light');
-      localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark');
-      syncIcon();
-    });
-  }
-
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
   if (sidebarToggle && sidebar) {

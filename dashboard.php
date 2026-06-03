@@ -37,47 +37,15 @@ $transaksi = $pdo->query(
 
 $trx_hari_ini = 0;
 $trx_masuk_hari = 0;
-$chart_data = [];
-$chart_labels = [];
 $aktivitas = [];
-$transaksi_besar = [];
 
 if ($isOwner) {
     $trx_hari_ini = (int) $pdo->query(
         'SELECT COUNT(*) FROM transaksi WHERE DATE(created_at) = CURDATE()'
     )->fetchColumn();
 
-    $dayMap = ['Sun' => 'Min', 'Mon' => 'Sen', 'Tue' => 'Sel', 'Wed' => 'Rab', 'Thu' => 'Kam', 'Fri' => 'Jum', 'Sat' => 'Sab'];
-    $stmtMasuk = $pdo->prepare(
-        "SELECT COALESCE(SUM(jumlah), 0) FROM transaksi
-         WHERE jenis = 'masuk' AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL ? DAY)"
-    );
-    $stmtKeluar = $pdo->prepare(
-        "SELECT COALESCE(SUM(jumlah), 0) FROM transaksi
-         WHERE jenis = 'keluar' AND DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL ? DAY)"
-    );
-
-    for ($i = 6; $i >= 0; $i--) {
-        $ts = strtotime("-$i days");
-        $hari = $dayMap[date('D', $ts)] ?? date('D', $ts);
-        $tgl = date('j', $ts);
-        $chart_labels[] = $i === 0 ? $hari . ' · hari ini' : $hari . ' ' . $tgl;
-        $stmtMasuk->execute([$i]);
-        $masuk = (int) $stmtMasuk->fetchColumn();
-        $stmtKeluar->execute([$i]);
-        $keluar = (int) $stmtKeluar->fetchColumn();
-        $chart_data[] = ['masuk' => $masuk, 'keluar' => $keluar, 'date' => date('Y-m-d', $ts)];
-    }
-
     $aktivitas = $pdo->query(
         'SELECT * FROM log_aktivitas ORDER BY created_at DESC LIMIT 8'
-    )->fetchAll();
-
-    $transaksi_besar = $pdo->query(
-        "SELECT t.*, b.nama_barang FROM transaksi t
-         JOIN barang b ON t.id_barang = b.id
-         WHERE t.jumlah > 15 AND DATE(t.created_at) = CURDATE()
-         ORDER BY t.created_at DESC LIMIT 3"
     )->fetchAll();
 } else {
     $trx_masuk_hari = (int) $pdo->query(
@@ -109,42 +77,10 @@ $initials = itemInitials($nama);
   $tvTitle = 'Dashboard — Toko Victory';
   include __DIR__ . '/includes/head.php';
   ?>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="app-body dashboard-page">
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="search-backdrop" id="searchBackdrop"></div>
-  <div class="notif-backdrop" id="notifBackdrop" aria-hidden="true"></div>
-  <aside class="notif-panel" id="notifPanel" aria-hidden="true">
-    <div class="notif-panel-head">
-      <h3>Notifikasi</h3>
-      <button type="button" class="btn-notif-close" id="btnNotifClose" aria-label="Tutup notifikasi">
-        <i class="ti ti-x"></i>
-      </button>
-    </div>
-    <div class="notif-panel-body">
-      <?php if ($count_menipis > 0): ?>
-        <p style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Stok menipis</p>
-        <?php foreach ($stok_menipis as $b): ?>
-          <div class="notif-item">
-            <strong><?= h($b['nama_barang']) ?></strong><br>
-            Stok <?= (int)$b['stok_saat_ini'] ?> / ROP <?= (int)$b['rop'] ?>
-          </div>
-        <?php endforeach; ?>
-      <?php endif; ?>
-      <?php if ($isOwner && !empty($transaksi_besar)): ?>
-        <p style="font-size:11px;color:var(--text-muted);margin:12px 0 8px">Transaksi besar hari ini</p>
-        <?php foreach ($transaksi_besar as $tb): ?>
-          <div class="notif-item">
-            <?= h($tb['nama_barang']) ?> — <?= h($tb['jenis']) ?> <?= (int)$tb['jumlah'] ?> unit
-          </div>
-        <?php endforeach; ?>
-      <?php endif; ?>
-      <?php if ($count_menipis === 0 && empty($transaksi_besar)): ?>
-        <p class="notif-item" style="color:var(--text-muted)">Tidak ada notifikasi baru.</p>
-      <?php endif; ?>
-    </div>
-  </aside>
 
   <div class="app-shell layout">
     <aside class="sidebar" id="sidebar">
@@ -197,11 +133,6 @@ $initials = itemInitials($nama);
             <input type="search" id="globalSearch" placeholder="Cari barang, lokasi..." autocomplete="off">
             <div class="search-dropdown" id="searchDropdown"></div>
           </div>
-          <button type="button" class="btn-icon theme-toggle" id="theme-toggle" aria-label="Toggle tema"><i class="ti ti-sun"></i></button>
-          <button type="button" class="icon-btn notif-btn" id="btnNotif" aria-label="Notifikasi">
-            <i class="ti ti-bell"></i>
-            <?php if ($count_menipis > 0): ?><span class="notif-badge" aria-hidden="true"></span><?php endif; ?>
-          </button>
           <div class="header-avatar" title="<?= h($nama) ?>"><?= h($initials) ?></div>
         </div>
       </header>
@@ -275,7 +206,7 @@ $initials = itemInitials($nama);
           <i class="ti ti-alert-triangle" style="font-size:22px;color:var(--amber)"></i>
           <div>
             <strong>Peringatan: <?= $count_menipis ?> barang perlu restock</strong>
-            <p>Stok di bawah atau sama dengan batas ROP (Reorder Point). Segera tambah stok atau buat pemesanan.</p>
+            <p>Stok di bawah atau sama dengan batas ROP (Reorder Point).<?php if ($isOwner): ?> Segera tambah stok atau buat pemesanan.<?php else: ?> Segera catat barang masuk di menu Transaksi.<?php endif; ?></p>
           </div>
           <?php if ($isOwner): ?>
           <a href="<?= rtrim(appBasePath(), '/') ?>/barang/index.php" class="btn btn-primary btn-cta"><i class="ti ti-package"></i> Kelola Barang</a>
@@ -289,7 +220,7 @@ $initials = itemInitials($nama);
               <h2>Stok menipis
                 <span class="badge-count <?= $count_menipis > 0 ? 'pulse-red' : '' ?>"><?= $count_menipis ?></span>
               </h2>
-              <a href="<?= rtrim(appBasePath(), '/') ?>/barang/index.php" class="btn-link">Lihat semua →</a>
+              <a href="<?= rtrim(appBasePath(), '/') ?>/<?= $isOwner ? 'barang/index.php' : 'transaksi/index.php' ?>" class="btn-link">Lihat semua →</a>
             </div>
             <div class="panel-body panel-body-scroll">
               <?php if (empty($stok_menipis)): ?>
@@ -359,13 +290,6 @@ $initials = itemInitials($nama);
 
         <?php if ($isOwner): ?>
         <div class="panels-bottom owner">
-          <div class="panel stagger-3 chart-panel">
-            <div class="panel-head">
-              <h2>Pergerakan stok 7 hari</h2>
-              <span style="font-size:11px;color:var(--text-hint)">Arahkan kursor ke grafik untuk detail</span>
-            </div>
-            <div class="chart-wrap"><canvas id="stockChart"></canvas></div>
-          </div>
           <div class="panel stagger-4">
             <div class="panel-head">
               <h2>Aktivitas pengguna</h2>
@@ -398,11 +322,12 @@ $initials = itemInitials($nama);
         </div>
         <?php else: ?>
         <div class="panels-bottom karyawan">
-          <div class="panel">
+          <div class="panel panel-scroll">
             <div class="panel-head">
               <h2>Ringkasan transaksi</h2>
               <span class="badge-count" style="background:var(--blue-bg);color:var(--blue)"><?= date('d M Y') ?></span>
             </div>
+            <div class="panel-body panel-body-scroll">
             <table class="data-table">
               <thead>
                 <tr><th>No</th><th>Nama Barang</th><th>Jenis</th><th>Jumlah</th><th>Waktu</th></tr>
@@ -422,6 +347,7 @@ $initials = itemInitials($nama);
             <div class="pagination">
               <button type="button" class="btn-link" id="btnNextTrx">Selanjutnya →</button>
             </div>
+            </div>
           </div>
         </div>
         <?php endif; ?>
@@ -430,9 +356,6 @@ $initials = itemInitials($nama);
   </div>
 
   <script>
-    const chartData = <?= json_encode($chart_data, JSON_HEX_TAG | JSON_HEX_APOS) ?>;
-    const chartLabels = <?= json_encode($chart_labels, JSON_HEX_TAG | JSON_HEX_APOS) ?>;
-    const isOwner = <?= $isOwner ? 'true' : 'false' ?>;
     const allTrxRows = <?= json_encode(array_map(function ($t, $i) {
         return [
             'no' => $i + 1,
@@ -491,141 +414,6 @@ $initials = itemInitials($nama);
       return d.innerHTML;
     }
 
-    /* Chart owner */
-    if (isOwner && typeof Chart !== 'undefined') {
-      const ctx = document.getElementById('stockChart');
-      if (ctx) {
-        const values = chartData.flatMap(d => [d.masuk, d.keluar]);
-        const dataMax = Math.max(...values, 0);
-
-        function niceAxisMax(max) {
-          if (max <= 0) return 10;
-          if (max <= 10) return 10;
-          const exp = Math.pow(10, Math.floor(Math.log10(max)));
-          const f = max / exp;
-          const nice = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
-          return Math.ceil((nice * exp) * 1.15);
-        }
-
-        const yMax = niceAxisMax(dataMax);
-
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: chartLabels,
-            datasets: [
-              {
-                label: 'Masuk',
-                data: chartData.map(d => d.masuk),
-                borderColor: '#22c55e',
-                backgroundColor: (context) => {
-                  const { ctx: c, chartArea } = context.chart;
-                  if (!chartArea) return 'rgba(34,197,94,0.1)';
-                  const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                  g.addColorStop(0, 'rgba(34,197,94,0.22)');
-                  g.addColorStop(1, 'rgba(34,197,94,0)');
-                  return g;
-                },
-                fill: true,
-                tension: 0.42,
-                borderWidth: 2.5,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: '#22c55e',
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
-              },
-              {
-                label: 'Keluar',
-                data: chartData.map(d => d.keluar),
-                borderColor: '#ef4444',
-                backgroundColor: (context) => {
-                  const { ctx: c, chartArea } = context.chart;
-                  if (!chartArea) return 'rgba(239,68,68,0.08)';
-                  const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                  g.addColorStop(0, 'rgba(239,68,68,0.18)');
-                  g.addColorStop(1, 'rgba(239,68,68,0)');
-                  return g;
-                },
-                fill: true,
-                tension: 0.42,
-                borderWidth: 2.5,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: '#ef4444',
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: '#1e1e22',
-                titleColor: '#f0f0f2',
-                bodyColor: '#c8c8d0',
-                borderColor: '#2e2e35',
-                borderWidth: 1,
-                borderRadius: 10,
-                padding: 12,
-                displayColors: true,
-                boxWidth: 8,
-                boxHeight: 8,
-                boxPadding: 4,
-                titleFont: { size: 12, weight: '600' },
-                bodyFont: { size: 12 },
-                callbacks: {
-                  title: (items) => items[0]?.label || '',
-                  label: (ctx) => {
-                    const v = ctx.parsed.y ?? 0;
-                    return ` ${ctx.dataset.label}: ${v.toLocaleString('id-ID')} unit`;
-                  },
-                  afterBody: (items) => {
-                    const i = items[0]?.dataIndex;
-                    if (i == null || !chartData[i]?.date) return '';
-                    return '\n' + chartData[i].date;
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                grid: { display: false },
-                border: { display: false },
-                ticks: {
-                  color: '#8e8e9a',
-                  font: { size: 11 },
-                  maxRotation: 0,
-                  autoSkip: false
-                }
-              },
-              y: {
-                min: 0,
-                max: yMax,
-                grid: {
-                  color: 'rgba(255,255,255,0.06)',
-                  drawBorder: false
-                },
-                border: { display: false },
-                ticks: {
-                  color: '#8e8e9a',
-                  font: { size: 11, family: "'JetBrains Mono', monospace" },
-                  maxTicksLimit: 6,
-                  stepSize: yMax <= 10 ? 2 : undefined,
-                  callback: (v) => (v >= 0 && Number.isInteger(v) ? v.toLocaleString('id-ID') : '')
-                }
-              }
-            }
-          }
-        });
-      }
-    }
-
     /* Search */
     const searchInput = document.getElementById('globalSearch');
     const searchDropdown = document.getElementById('searchDropdown');
@@ -665,41 +453,9 @@ $initials = itemInitials($nama);
     function closeSearch() { searchDropdown.classList.remove('open'); searchBackdrop.classList.remove('open'); }
     searchBackdrop?.addEventListener('click', closeSearch);
 
-    const notifPanel = document.getElementById('notifPanel');
-    const notifBackdrop = document.getElementById('notifBackdrop');
-
-    function openNotif() {
-      notifPanel.classList.add('open');
-      notifBackdrop.classList.add('open');
-      notifPanel.setAttribute('aria-hidden', 'false');
-      notifBackdrop.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeNotif() {
-      notifPanel.classList.remove('open');
-      notifBackdrop.classList.remove('open');
-      notifPanel.setAttribute('aria-hidden', 'true');
-      notifBackdrop.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
-    }
-
-    function toggleNotif() {
-      if (notifPanel.classList.contains('open')) closeNotif();
-      else openNotif();
-    }
-
-    document.getElementById('btnNotif')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleNotif();
-    });
-    document.getElementById('btnNotifClose')?.addEventListener('click', closeNotif);
-    notifBackdrop?.addEventListener('click', closeNotif);
-
     document.addEventListener('keydown', e => {
       if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput?.focus(); }
       if (e.key === 'Escape') {
-        if (notifPanel?.classList.contains('open')) { closeNotif(); return; }
         if (searchDropdown.classList.contains('open')) { closeSearch(); searchInput?.blur(); return; }
       }
       if (!searchDropdown.classList.contains('open')) return;

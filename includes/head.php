@@ -20,11 +20,4 @@ $cssVer = max(
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="<?= h($tvBase) ?>/includes/styles.css?v=<?= $cssVer ?>">
   <link rel="stylesheet" href="<?= h($tvBase) ?>/includes/styles-premium.css?v=<?= $cssVer ?>">
-  <script>
-  (function () {
-    if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.classList.add('light');
-    }
-  })();
-  </script>
   <script src="<?= h($tvBase) ?>/includes/page_utils.js"></script>

@@ -38,9 +38,9 @@ switch ($laporan) {
             $params[] = $f['lokasi'];
         }
         $whereSql = implode(' AND ', $where);
-        fputcsv($out, ['No', 'Nama Barang', 'Kategori', 'Satuan', 'Merek', 'Lokasi', 'Stok', 'ROP', 'Nilai Stok', 'Status']);
+        fputcsv($out, ['No', 'Nama Barang', 'Kategori', 'Satuan', 'Merek', 'Lokasi', 'Stok', 'ROP', 'Status']);
         $sql = "SELECT b.nama_barang, k.nama_kategori, s.nama_satuan, m.nama_merek, l.nama_lokasi,
-                b.stok_saat_ini, b.rop, (b.stok_saat_ini * b.harga) AS nilai
+                b.stok_saat_ini, b.rop
                 FROM barang b
                 LEFT JOIN kategori k ON b.id_kategori = k.id
                 LEFT JOIN satuan s ON b.id_satuan = s.id
@@ -55,7 +55,7 @@ switch ($laporan) {
             fputcsv($out, [
                 $n++, $r['nama_barang'], $r['nama_kategori'] ?? '', $r['nama_satuan'] ?? '',
                 $r['nama_merek'] ?? '', $r['nama_lokasi'] ?? '', $r['stok_saat_ini'], $r['rop'],
-                $r['nilai'], ucfirst($st),
+                ucfirst($st),
             ]);
         }
         break;

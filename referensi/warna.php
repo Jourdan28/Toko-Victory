@@ -12,6 +12,5 @@ runReferensiPage($pdo, [
     'fk_col' => 'id_warna',
     'fields' => [
         'nama_warna' => ['label' => 'Nama Warna', 'required' => true],
-        'kode_hex' => ['label' => 'Kode Hex', 'type' => 'color'],
     ],
 ]);

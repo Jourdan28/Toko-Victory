@@ -47,8 +47,7 @@ $whereSql = implode(' AND ', $where);
 );
 
 $sql = "SELECT b.id, b.nama_barang, k.nama_kategori, s.nama_satuan, m.nama_merek, l.nama_lokasi,
-        b.stok_saat_ini, b.rop, b.safety_stock, b.harga,
-        (b.stok_saat_ini * b.harga) AS nilai_stok
+        b.stok_saat_ini, b.rop, b.safety_stock, b.harga
         FROM barang b
         LEFT JOIN kategori k ON b.id_kategori = k.id
         LEFT JOIN satuan s ON b.id_satuan = s.id
@@ -63,7 +62,6 @@ $rows = $stmt->fetchAll();
 
 $sumStmt = $pdo->prepare(
     "SELECT COUNT(*) AS jenis, COALESCE(SUM(b.stok_saat_ini),0) AS unit,
-     COALESCE(SUM(b.stok_saat_ini * b.harga),0) AS nilai,
      SUM(CASE WHEN b.stok_saat_ini > 0 AND b.stok_saat_ini <= GREATEST(b.rop,1) THEN 1 ELSE 0 END) AS menipis
      FROM barang b LEFT JOIN kategori k ON b.id_kategori = k.id WHERE $whereSql"
 );
@@ -125,10 +123,6 @@ laporanRenderStyles();
         <div class="summary-icon icon-green"><i class="ti ti-stack-2"></i></div>
         <div><div class="summary-val"><?= number_format((int) $sum['unit']) ?></div><div class="summary-lbl">Total unit tersedia</div></div>
       </div>
-      <div class="summary-card accent-amber">
-        <div class="summary-icon icon-amber"><i class="ti ti-coins"></i></div>
-        <div><div class="summary-val"><?= $isOwner ? laporanFormatRupiah($sum['nilai']) : '—' ?></div><div class="summary-lbl">Total nilai stok</div></div>
-      </div>
       <div class="summary-card accent-red">
         <div class="summary-icon icon-red"><i class="ti ti-alert-triangle"></i></div>
         <div><div class="summary-val"><?= number_format((int) $sum['menipis']) ?></div><div class="summary-lbl">Barang menipis</div></div>
@@ -143,7 +137,7 @@ laporanRenderStyles();
       <table class="laporan-table" id="laporanTable">
         <thead><tr>
           <th>No</th><th>Nama Barang</th><th>Kategori</th><th>Satuan</th><th>Merek</th><th>Lokasi</th>
-          <th>Stok Tersedia</th><th>ROP</th><th>Nilai Stok</th><th>Status</th>
+          <th>Stok Tersedia</th><th>ROP</th><th>Status</th>
         </tr></thead>
         <tbody>
         <?php $no = $offset + 1; foreach ($rows as $r):
@@ -158,7 +152,6 @@ laporanRenderStyles();
           <td><?= h($r['nama_lokasi'] ?? '—') ?></td>
           <td class="mono fw-semibold"><?= number_format((int) $r['stok_saat_ini']) ?></td>
           <td class="mono"><?= number_format((int) $r['rop']) ?></td>
-          <td class="mono" style="color:var(--text-muted)"><?= $isOwner ? laporanFormatRupiah($r['nilai_stok']) : '—' ?></td>
           <td><?= laporanStatusBadge($st) ?></td>
         </tr>
         <?php endforeach; ?>

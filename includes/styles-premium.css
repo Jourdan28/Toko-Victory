@@ -122,6 +122,11 @@ h1, h2, .page-head h2, .auth-form-wrap .card-title {
   margin: var(--space-1) 0 0;
 }
 
+.dashboard-intro-text {
+  min-width: 0;
+  flex: 1;
+}
+
 .dashboard-intro .badge {
   flex-shrink: 0;
 }
@@ -210,12 +215,6 @@ h1, h2, .page-head h2, .auth-form-wrap .card-title {
 .breadcrumb strong {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
-}
-
-.theme-toggle:hover {
-  border-color: var(--brand-3);
-  color: var(--brand-4);
-  background: rgba(251, 191, 36, 0.1);
 }
 
 /* === Content area === */
