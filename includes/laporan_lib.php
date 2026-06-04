@@ -35,6 +35,7 @@ function laporanFiltersFromRequest(): array
         'q' => trim($_GET['q'] ?? ''),
         'kategori' => (int) ($_GET['kategori'] ?? 0),
         'lokasi' => (int) ($_GET['lokasi'] ?? 0),
+        'merek' => (int) ($_GET['merek'] ?? 0),
         'supplier' => (int) ($_GET['supplier'] ?? 0),
         'status' => trim($_GET['status'] ?? ''),
         'dari' => trim($_GET['dari'] ?? ''),
@@ -125,6 +126,52 @@ function laporanKategoriList(PDO $pdo): array
 function laporanLokasiList(PDO $pdo): array
 {
     return $pdo->query('SELECT id, nama_lokasi FROM lokasi ORDER BY nama_lokasi')->fetchAll();
+}
+
+function laporanMerekList(PDO $pdo): array
+{
+    return $pdo->query('SELECT id, nama_merek FROM merek ORDER BY nama_merek')->fetchAll();
+}
+
+function laporanBarangTersediaWhere(array $f): array
+{
+    $where = ['b.stok_saat_ini > 0'];
+    $params = [];
+    if ($f['q'] !== '') {
+        $where[] = '(b.nama_barang LIKE ? OR k.nama_kategori LIKE ? OR m.nama_merek LIKE ? OR l.nama_lokasi LIKE ?)';
+        $like = '%' . $f['q'] . '%';
+        array_push($params, $like, $like, $like, $like);
+    }
+    if ($f['kategori'] > 0) {
+        $where[] = 'b.id_kategori = ?';
+        $params[] = $f['kategori'];
+    }
+    if ($f['lokasi'] > 0) {
+        $where[] = 'b.id_lokasi = ?';
+        $params[] = $f['lokasi'];
+    }
+    if (($f['merek'] ?? 0) > 0) {
+        $where[] = 'b.id_merek = ?';
+        $params[] = $f['merek'];
+    }
+    return [implode(' AND ', $where), $params];
+}
+
+function laporanBarangTersediaJoins(): string
+{
+    return 'FROM barang b
+        LEFT JOIN kategori k ON b.id_kategori = k.id
+        LEFT JOIN satuan s ON b.id_satuan = s.id
+        LEFT JOIN merek m ON b.id_merek = m.id
+        LEFT JOIN lokasi l ON b.id_lokasi = l.id';
+}
+
+function laporanHasBarangTersediaFilter(array $f): bool
+{
+    return $f['q'] !== ''
+        || $f['kategori'] > 0
+        || $f['lokasi'] > 0
+        || ($f['merek'] ?? 0) > 0;
 }
 
 function laporanSupplierList(PDO $pdo): array

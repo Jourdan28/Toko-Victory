@@ -14,18 +14,12 @@ $f = laporanFiltersFromRequest();
 $perPage = 15;
 $self = 'barang_tersedia.php';
 
-$where = ['b.stok_saat_ini > 0'];
-$params = [];
-if ($f['q'] !== '') {
-    $where[] = '(b.nama_barang LIKE ? OR k.nama_kategori LIKE ?)';
-    $params[] = '%' . $f['q'] . '%';
-    $params[] = '%' . $f['q'] . '%';
-}
-$whereSql = implode(' AND ', $where);
+[$whereSql, $params] = laporanBarangTersediaWhere($f);
+$joins = laporanBarangTersediaJoins();
 
 [$total, $totalPages, $page, $offset] = laporanPaginate(
     $pdo,
-    "SELECT COUNT(*) FROM barang b LEFT JOIN kategori k ON b.id_kategori = k.id WHERE $whereSql",
+    "SELECT COUNT(*) $joins WHERE $whereSql",
     $params,
     $f['page'],
     $perPage
@@ -33,11 +27,7 @@ $whereSql = implode(' AND ', $where);
 
 $sql = "SELECT b.id, b.nama_barang, k.nama_kategori, s.nama_satuan, m.nama_merek, l.nama_lokasi,
         b.stok_saat_ini, b.rop, b.safety_stock, b.harga
-        FROM barang b
-        LEFT JOIN kategori k ON b.id_kategori = k.id
-        LEFT JOIN satuan s ON b.id_satuan = s.id
-        LEFT JOIN merek m ON b.id_merek = m.id
-        LEFT JOIN lokasi l ON b.id_lokasi = l.id
+        $joins
         WHERE $whereSql
         ORDER BY b.stok_saat_ini DESC
         LIMIT $perPage OFFSET $offset";
@@ -48,10 +38,15 @@ $rows = $stmt->fetchAll();
 $sumStmt = $pdo->prepare(
     "SELECT COUNT(*) AS jenis, COALESCE(SUM(b.stok_saat_ini),0) AS unit,
      SUM(CASE WHEN b.stok_saat_ini > 0 AND b.stok_saat_ini <= GREATEST(b.rop,1) THEN 1 ELSE 0 END) AS menipis
-     FROM barang b LEFT JOIN kategori k ON b.id_kategori = k.id WHERE $whereSql"
+     $joins WHERE $whereSql"
 );
 $sumStmt->execute($params);
 $sum = $sumStmt->fetch();
+
+$kategoriList = laporanKategoriList($pdo);
+$lokasiList = laporanLokasiList($pdo);
+$merekList = laporanMerekList($pdo);
+$hasFilter = laporanHasBarangTersediaFilter($f);
 
 ob_start();
 laporanRenderStyles();
@@ -59,14 +54,43 @@ laporanRenderStyles();
 <?php laporanRenderPageHead('Laporan', 'Ringkasan barang yang masih tersedia di gudang dan etalase'); ?>
 <?php laporanRenderTabs($laporan_tab, $BASE); ?>
 <div class="laporan-panel">
-  <div class="laporan-toolbar laporan-search-only">
-    <form method="get" class="laporan-search-form">
-      <div class="search-box">
-        <i class="ti ti-search"></i>
-        <input type="search" name="q" id="liveSearchInput" placeholder="Cari barang..." value="<?= h($f['q']) ?>" autocomplete="off">
-      </div>
-    </form>
-  </div>
+  <form method="get" class="laporan-toolbar">
+    <div class="form-group flex-grow">
+      <label>Cari barang</label>
+      <input type="text" name="q" id="liveSearchInput" placeholder="Nama barang, kategori, merek…" value="<?= h($f['q']) ?>">
+    </div>
+    <div class="form-group">
+      <label>Kategori</label>
+      <select name="kategori">
+        <option value="0">Semua</option>
+        <?php foreach ($kategoriList as $k): ?>
+        <option value="<?= (int) $k['id'] ?>" <?= $f['kategori'] === (int) $k['id'] ? 'selected' : '' ?>><?= h($k['nama_kategori']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Merek</label>
+      <select name="merek">
+        <option value="0">Semua</option>
+        <?php foreach ($merekList as $m): ?>
+        <option value="<?= (int) $m['id'] ?>" <?= ($f['merek'] ?? 0) === (int) $m['id'] ? 'selected' : '' ?>><?= h($m['nama_merek']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Lokasi</label>
+      <select name="lokasi">
+        <option value="0">Semua</option>
+        <?php foreach ($lokasiList as $l): ?>
+        <option value="<?= (int) $l['id'] ?>" <?= $f['lokasi'] === (int) $l['id'] ? 'selected' : '' ?>><?= h($l['nama_lokasi']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Terapkan Filter</button>
+    <?php if ($hasFilter): ?>
+    <a href="<?= h($self) ?>" class="btn-outline">Reset</a>
+    <?php endif; ?>
+  </form>
 
   <div class="laporan-panel-body">
     <div class="laporan-summary">
@@ -86,8 +110,8 @@ laporanRenderStyles();
 
     <?php if (empty($rows)): ?>
     <div class="laporan-empty"><i class="ti ti-box-off"></i><p>Tidak ada data ditemukan</p>
-      <?php if ($f['q'] !== ''): ?>
-      <a href="<?= h($self) ?>" class="btn-outline" style="margin-top:12px;display:inline-flex">Hapus pencarian</a>
+      <?php if ($hasFilter): ?>
+      <a href="<?= h($self) ?>" class="btn-outline" style="margin-top:12px;display:inline-flex">Hapus filter</a>
       <?php endif; ?></div>
     <?php else: ?>
     <div class="card-table laporan-table-wrap">

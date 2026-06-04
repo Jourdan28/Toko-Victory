@@ -22,30 +22,12 @@ $out = fopen('php://output', 'w');
 
 switch ($laporan) {
     case 'barang_tersedia':
-        $where = ['b.stok_saat_ini > 0'];
-        $params = [];
-        if ($f['q'] !== '') {
-            $where[] = '(b.nama_barang LIKE ? OR k.nama_kategori LIKE ?)';
-            $params[] = '%' . $f['q'] . '%';
-            $params[] = '%' . $f['q'] . '%';
-        }
-        if ($f['kategori'] > 0) {
-            $where[] = 'b.id_kategori = ?';
-            $params[] = $f['kategori'];
-        }
-        if ($f['lokasi'] > 0) {
-            $where[] = 'b.id_lokasi = ?';
-            $params[] = $f['lokasi'];
-        }
-        $whereSql = implode(' AND ', $where);
+        [$whereSql, $params] = laporanBarangTersediaWhere($f);
+        $joins = laporanBarangTersediaJoins();
         fputcsv($out, ['No', 'Nama Barang', 'Kategori', 'Satuan', 'Merek', 'Lokasi', 'Stok', 'ROP', 'Status']);
         $sql = "SELECT b.nama_barang, k.nama_kategori, s.nama_satuan, m.nama_merek, l.nama_lokasi,
                 b.stok_saat_ini, b.rop
-                FROM barang b
-                LEFT JOIN kategori k ON b.id_kategori = k.id
-                LEFT JOIN satuan s ON b.id_satuan = s.id
-                LEFT JOIN merek m ON b.id_merek = m.id
-                LEFT JOIN lokasi l ON b.id_lokasi = l.id
+                $joins
                 WHERE $whereSql ORDER BY b.stok_saat_ini DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
