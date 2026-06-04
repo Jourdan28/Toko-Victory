@@ -21,6 +21,8 @@ function initTableTabs(tabRootId, attrName, options) {
   const root = document.getElementById(tabRootId);
   const tableId = options?.tableId || 'dataTable';
   const searchInputId = options?.searchInputId || 'searchTable';
+  const dateInputId = options?.dateInputId || null;
+  const dateColIndex = options?.dateColIndex ?? null;
   const tbl = document.getElementById(tableId);
   if (!root || !tbl) return;
 
@@ -33,14 +35,22 @@ function initTableTabs(tabRootId, attrName, options) {
     return activeVal === 'all' || rowVal === activeVal;
   }
 
+  function normDateText(s) {
+    return (s || '').toLowerCase().replace(/[\/\-]/g, ' ').trim();
+  }
+
   function applyFilters() {
     const q = (document.getElementById(searchInputId)?.value || '').toLowerCase();
+    const dateQ = dateInputId ? normDateText(document.getElementById(dateInputId)?.value) : '';
     let visible = 0;
     tbl.querySelectorAll('tbody tr').forEach((tr) => {
       if (tr.querySelector('.empty-state')) return;
       const tabOk = rowMatchesTab(tr);
       const textOk = !q || tr.textContent.toLowerCase().includes(q);
-      const show = tabOk && textOk;
+      const tds = tr.querySelectorAll('td');
+      const dateCell = dateColIndex !== null ? normDateText(tds[dateColIndex]?.textContent) : '';
+      const dateOk = !dateQ || dateCell.includes(dateQ);
+      const show = tabOk && textOk && dateOk;
       tr.style.display = show ? '' : 'none';
       if (show) visible++;
     });
@@ -75,6 +85,11 @@ function initTableTabs(tabRootId, attrName, options) {
   const searchInp = document.getElementById(searchInputId);
   if (searchInp) {
     searchInp.addEventListener('input', applyFilters);
+  }
+
+  const dateInp = dateInputId ? document.getElementById(dateInputId) : null;
+  if (dateInp) {
+    dateInp.addEventListener('input', applyFilters);
   }
 
   if (syncSelect) {

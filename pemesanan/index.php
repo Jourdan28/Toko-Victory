@@ -51,7 +51,10 @@ ob_start();
   <button type="button" data-status="dibatalkan">Dibatalkan</button>
 </div>
 
-<div class="search-box"><i class="ti ti-search"></i><input type="search" id="searchTable" placeholder="Cari pesanan..."></div>
+<div class="pemesanan-toolbar">
+  <div class="search-box"><i class="ti ti-search"></i><input type="search" id="searchTable" placeholder="Cari pesanan..."></div>
+  <input type="text" id="filterTanggal" class="pemesanan-date-input" placeholder="Cari tanggal..." autocomplete="off">
+</div>
 
 <div class="card-table">
   <table id="dataTable">
@@ -69,7 +72,7 @@ ob_start();
         $sl = $statusLabel[$stKey] ?? ['?', 'tag-gray'];
         $rowClass = $p['status'] === 'diterima' ? 'row-dim' : '';
       ?>
-      <tr data-status="<?= h($stKey) ?>" class="<?= $rowClass ?>">
+      <tr data-status="<?= h($stKey) ?>" data-tgl="<?= h(strtolower(date('d M Y', strtotime($p['tanggal_pesan'])))) ?>" class="<?= $rowClass ?>">
         <td><?= $i + 1 ?></td>
         <td class="mono"><?= h($p['kode_pesanan']) ?></td>
         <td><?= h($p['nama_barang']) ?></td>
@@ -129,8 +132,43 @@ ob_start();
 
 <script>
 runPageInit(function () {
-  liveSearch('searchTable', 'dataTable');
-  initTableTabs('tabStatus', 'status', { tableId: 'dataTable' });
+  const tbl = document.getElementById('dataTable');
+  const searchInp = document.getElementById('searchTable');
+  const dateInp = document.getElementById('filterTanggal');
+  const tabRoot = document.getElementById('tabStatus');
+  let activeTab = 'all';
+
+  function normText(s) {
+    return (s || '').toLowerCase().replace(/[\/\-\.]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function applyFilters() {
+    if (!tbl) return;
+    const q = normText(searchInp?.value);
+    const dateQ = normText(dateInp?.value);
+    tbl.querySelectorAll('tbody tr').forEach((tr) => {
+      if (tr.querySelector('.empty-state')) return;
+      const tabOk = activeTab === 'all' || tr.getAttribute('data-status') === activeTab;
+      const tgl = normText(tr.getAttribute('data-tgl') || '');
+      const rowText = normText(tr.textContent);
+      const searchOk = !q || rowText.includes(q);
+      const dateOk = !dateQ || tgl.includes(dateQ);
+      tr.style.display = tabOk && searchOk && dateOk ? '' : 'none';
+    });
+  }
+
+  tabRoot?.querySelectorAll('button[data-status]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeTab = btn.getAttribute('data-status') || 'all';
+      tabRoot.querySelectorAll('button[data-status]').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+      });
+      applyFilters();
+    });
+  });
+
+  searchInp?.addEventListener('input', applyFilters);
+  dateInp?.addEventListener('input', applyFilters);
 
   const modal = document.getElementById('modalStatus');
   if (modal.parentElement && modal.parentElement !== document.body) {

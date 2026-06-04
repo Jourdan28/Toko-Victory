@@ -20,4 +20,5 @@ $cssVer = max(
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="<?= h($tvBase) ?>/includes/styles.css?v=<?= $cssVer ?>">
   <link rel="stylesheet" href="<?= h($tvBase) ?>/includes/styles-premium.css?v=<?= $cssVer ?>">
-  <script src="<?= h($tvBase) ?>/includes/page_utils.js"></script>
+  <?php $jsVer = is_file(__DIR__ . '/page_utils.js') ? (int) filemtime(__DIR__ . '/page_utils.js') : time(); ?>
+  <script src="<?= h($tvBase) ?>/includes/page_utils.js?v=<?= $jsVer ?>"></script>

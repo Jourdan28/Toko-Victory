@@ -797,6 +797,35 @@ html.light .content::-webkit-scrollbar-thumb {
   padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle);
 }
 .laporan-toolbar .form-group { margin: 0; min-width: 140px; }
+.pemesanan-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.pemesanan-toolbar .search-box {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+.pemesanan-toolbar .search-box input {
+  width: 100%;
+  max-width: none;
+}
+.pemesanan-date-input {
+  width: 140px;
+  flex-shrink: 0;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+.pemesanan-date-input::placeholder {
+  color: var(--text-tertiary);
+}
 .laporan-search-only {
   padding: var(--space-4);
   border-bottom: 1px solid var(--border-subtle);

@@ -80,7 +80,6 @@ $initials = itemInitials($nama);
 </head>
 <body class="app-body dashboard-page">
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="search-backdrop" id="searchBackdrop"></div>
 
   <div class="app-shell layout">
     <aside class="sidebar" id="sidebar">
@@ -128,11 +127,6 @@ $initials = itemInitials($nama);
           <div class="breadcrumb"><i class="ti ti-layout-dashboard"></i> Toko Victory <span class="breadcrumb-sep">/</span> <strong>Dashboard</strong></div>
         </div>
         <div class="header-right">
-          <div class="search-wrap">
-            <i class="ti ti-search"></i>
-            <input type="search" id="globalSearch" placeholder="Cari barang, lokasi..." autocomplete="off">
-            <div class="search-dropdown" id="searchDropdown"></div>
-          </div>
           <div class="header-avatar" title="<?= h($nama) ?>"><?= h($initials) ?></div>
         </div>
       </header>
@@ -413,56 +407,6 @@ $initials = itemInitials($nama);
       d.textContent = s;
       return d.innerHTML;
     }
-
-    /* Search */
-    const searchInput = document.getElementById('globalSearch');
-    const searchDropdown = document.getElementById('searchDropdown');
-    const searchBackdrop = document.getElementById('searchBackdrop');
-    let searchTimer, activeIdx = -1, searchResults = [];
-
-    searchInput?.addEventListener('input', () => {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(async () => {
-        const q = searchInput.value.trim();
-        if (q.length < 1) { closeSearch(); return; }
-        const res = await fetch('search.php?q=' + encodeURIComponent(q));
-        const data = await res.json();
-        searchResults = data.results || [];
-        activeIdx = -1;
-        renderSearch();
-        openSearch();
-      }, 300);
-    });
-
-    function renderSearch() {
-      if (!searchResults.length) {
-        searchDropdown.innerHTML = '<div class="search-item" style="color:var(--text-muted)">Tidak ada hasil</div>';
-        return;
-      }
-      searchDropdown.innerHTML = searchResults.map((r, i) => `
-        <div class="search-item${i===activeIdx?' active':''}" data-idx="${i}">
-          <i class="ti ti-${r.icon==='box'?'package':r.icon==='truck'?'truck':'user'}"></i>
-          <div><div>${escapeHtml(r.title)}</div><div class="meta">${escapeHtml(r.meta)}</div></div>
-        </div>`).join('');
-      searchDropdown.querySelectorAll('.search-item').forEach(el => {
-        el.addEventListener('click', () => { window.location.href = el.dataset.idx ? searchResults[el.dataset.idx]?.url || '#' : '#'; });
-      });
-    }
-
-    function openSearch() { searchDropdown.classList.add('open'); searchBackdrop.classList.add('open'); }
-    function closeSearch() { searchDropdown.classList.remove('open'); searchBackdrop.classList.remove('open'); }
-    searchBackdrop?.addEventListener('click', closeSearch);
-
-    document.addEventListener('keydown', e => {
-      if (e.key === '/' && document.activeElement !== searchInput) { e.preventDefault(); searchInput?.focus(); }
-      if (e.key === 'Escape') {
-        if (searchDropdown.classList.contains('open')) { closeSearch(); searchInput?.blur(); return; }
-      }
-      if (!searchDropdown.classList.contains('open')) return;
-      if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, searchResults.length - 1); renderSearch(); }
-      if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); renderSearch(); }
-      if (e.key === 'Enter' && activeIdx >= 0) { window.location.href = searchResults[activeIdx]?.url || '#'; }
-    });
 
     /* Sidebar mobile */
     const sidebar = document.getElementById('sidebar');
