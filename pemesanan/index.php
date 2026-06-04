@@ -53,7 +53,11 @@ ob_start();
 
 <div class="pemesanan-toolbar">
   <div class="search-box"><i class="ti ti-search"></i><input type="search" id="searchTable" placeholder="Cari pesanan..."></div>
-  <input type="text" id="filterTanggal" class="pemesanan-date-input" placeholder="Cari tanggal..." autocomplete="off">
+  <div class="pemesanan-date-range">
+    <input type="text" id="filterDari" class="pemesanan-date-input" placeholder="Dari" autocomplete="off" title="Contoh: 3/6/2026 atau 3 Jun">
+    <span class="pemesanan-date-sep">—</span>
+    <input type="text" id="filterSampai" class="pemesanan-date-input" placeholder="Sampai" autocomplete="off" title="Contoh: 4/6/2026 atau 4 Jun">
+  </div>
 </div>
 
 <div class="card-table">
@@ -72,7 +76,7 @@ ob_start();
         $sl = $statusLabel[$stKey] ?? ['?', 'tag-gray'];
         $rowClass = $p['status'] === 'diterima' ? 'row-dim' : '';
       ?>
-      <tr data-status="<?= h($stKey) ?>" data-tgl="<?= h(strtolower(date('d M Y', strtotime($p['tanggal_pesan'])))) ?>" class="<?= $rowClass ?>">
+      <tr data-status="<?= h($stKey) ?>" data-tgl-iso="<?= h(date('Y-m-d', strtotime($p['tanggal_pesan']))) ?>" class="<?= $rowClass ?>">
         <td><?= $i + 1 ?></td>
         <td class="mono"><?= h($p['kode_pesanan']) ?></td>
         <td><?= h($p['nama_barang']) ?></td>
@@ -134,25 +138,92 @@ ob_start();
 runPageInit(function () {
   const tbl = document.getElementById('dataTable');
   const searchInp = document.getElementById('searchTable');
-  const dateInp = document.getElementById('filterTanggal');
+  const dariInp = document.getElementById('filterDari');
+  const sampaiInp = document.getElementById('filterSampai');
   const tabRoot = document.getElementById('tabStatus');
   let activeTab = 'all';
+
+  const MONTHS = {
+    jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, may: 4, jun: 5,
+    jul: 6, agu: 7, aug: 7, sep: 8, okt: 9, oct: 9, nov: 10, des: 11, dec: 11,
+  };
 
   function normText(s) {
     return (s || '').toLowerCase().replace(/[\/\-\.]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
+  function parseDateInput(str) {
+    if (!str || !str.trim()) return null;
+    const raw = str.trim().toLowerCase().replace(/\./g, '');
+
+    let m = raw.match(/^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$/);
+    if (m) {
+      const d = +m[1];
+      const mo = +m[2] - 1;
+      let y = m[3] ? +m[3] : new Date().getFullYear();
+      if (y < 100) y += 2000;
+      const dt = new Date(y, mo, d);
+      if (dt.getFullYear() === y && dt.getMonth() === mo && dt.getDate() === d) return dt;
+    }
+
+    m = raw.match(/^(\d{1,2})\s+([a-z]+)(?:\s+(\d{4}))?$/);
+    if (m) {
+      const mon = MONTHS[m[2].slice(0, 3)];
+      if (mon !== undefined) {
+        const d = +m[1];
+        const y = m[3] ? +m[3] : new Date().getFullYear();
+        return new Date(y, mon, d);
+      }
+    }
+
+    m = raw.match(/^(\d{1,2})$/);
+    if (m) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), +m[1]);
+    }
+
+    return null;
+  }
+
+  function dayNum(dt) {
+    return dt.getFullYear() * 10000 + (dt.getMonth() + 1) * 100 + dt.getDate();
+  }
+
+  function isoToDayNum(iso) {
+    const p = (iso || '').split('-');
+    if (p.length !== 3) return null;
+    return +p[0] * 10000 + +p[1] * 100 + +p[2];
+  }
+
+  function dateInRange(iso, dariDt, sampaiDt) {
+    const rowDay = isoToDayNum(iso);
+    if (rowDay === null) return false;
+    if (dariDt && rowDay < dayNum(dariDt)) return false;
+    if (sampaiDt && rowDay > dayNum(sampaiDt)) return false;
+    return true;
+  }
+
+  function rowDateOk(iso) {
+    const dariRaw = (dariInp?.value || '').trim();
+    const sampaiRaw = (sampaiInp?.value || '').trim();
+    if (!dariRaw && !sampaiRaw) return true;
+    const dariDt = parseDateInput(dariRaw);
+    const sampaiDt = parseDateInput(sampaiRaw);
+    if (dariRaw && !dariDt) return false;
+    if (sampaiRaw && !sampaiDt) return false;
+    return dateInRange(iso, dariDt, sampaiDt);
+  }
+
   function applyFilters() {
     if (!tbl) return;
     const q = normText(searchInp?.value);
-    const dateQ = normText(dateInp?.value);
     tbl.querySelectorAll('tbody tr').forEach((tr) => {
       if (tr.querySelector('.empty-state')) return;
       const tabOk = activeTab === 'all' || tr.getAttribute('data-status') === activeTab;
-      const tgl = normText(tr.getAttribute('data-tgl') || '');
       const rowText = normText(tr.textContent);
       const searchOk = !q || rowText.includes(q);
-      const dateOk = !dateQ || tgl.includes(dateQ);
+      const iso = tr.getAttribute('data-tgl-iso') || '';
+      const dateOk = rowDateOk(iso);
       tr.style.display = tabOk && searchOk && dateOk ? '' : 'none';
     });
   }
@@ -168,7 +239,8 @@ runPageInit(function () {
   });
 
   searchInp?.addEventListener('input', applyFilters);
-  dateInp?.addEventListener('input', applyFilters);
+  dariInp?.addEventListener('input', applyFilters);
+  sampaiInp?.addEventListener('input', applyFilters);
 
   const modal = document.getElementById('modalStatus');
   if (modal.parentElement && modal.parentElement !== document.body) {
